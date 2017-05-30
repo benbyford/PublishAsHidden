@@ -1,0 +1,101 @@
+<?php
+/**
+ * PublishAsHidden (0.0.1)
+ *
+ * @author Ben Byford
+ * @url BenByford.com
+ *
+ * Hookable functions: PublishAsHidden
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class PublishAsHidden extends WireData implements Module {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => "PublishAsHidden",
+			'version' => "0.0.1",
+			'summary' => "PublishAsHiddenAdds button on first tab of edit page, when unpublished module adds Publish as hidden button which publishs page with flag as hidden.",
+			'author' => "Ben Byford",
+			'href' => "",
+			'icon' => "btn",
+
+			// use autoload if module is to be called each load, if it is only needed to setup something set to false
+			'autoload' => true,
+			'singular' => true,
+			'requires' => "ProcessWire>=2.5",
+		);
+	}
+	
+	public $publish_name = "publish_hidden";
+	public $publish_btn_val = "Publish hidden";
+
+	public function init() {
+		
+		// add hook to page edit form
+		$this->addHookAfter("ProcessPageEdit::buildForm", $this, "processForm");
+
+	}
+	
+	public function ready() {
+		
+		if($this->input->post($this->publish_name)) {
+			
+			$id = $this->input->get("id");
+			
+			$this->publishHidden($id);
+		}
+	}
+	
+	public function ___publishHidden(int $id) {
+
+		// get page
+		$page = $this->pages->get($id);
+		
+		$this->message("Page " . $page->id . " published as hidden");
+		$this->log->message("Page " . $page->id . " published as hidden");
+
+		// add page status as hidden and published
+		$page->addStatus("hidden");
+		$page->removeStatus("unpublished");
+			
+		// save page
+		$page->save();
+	}
+
+	/*
+	*	Process page buttons
+	*/
+	
+	public function ___processForm(HookEvent $form) {
+			
+		// get form
+		$form = $form->return;
+
+
+		// check if publish button available and therfore unpublished
+		$target = $form->get('submit_publish');
+		if($target){
+							
+			// get InputfieldText module
+
+			$submit = $this->modules->get('InputfieldSubmit');
+			$submit->attr('name', $this->publish_name);
+			$submit->attr('id', 'publish_hidden');
+			$submit->attr('class', 'ui-button ui-widget ui-corner-all head_button_clone ui-state-default ui-priority-secondary');
+			$submit->attr('value', $this->publish_btn_val);
+
+			// get form element save and place before
+			$form->insertAfter($submit, $target);
+
+			$form->return = $form;
+		}
+    }
+}
