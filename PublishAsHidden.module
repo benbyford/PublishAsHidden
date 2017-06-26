@@ -43,33 +43,22 @@ class PublishAsHidden extends WireData implements Module {
 
 		// add hook to page edit form
 		$this->addHookAfter("ProcessPageEdit::buildForm", $this, "processForm");
-
+		$this->addHookAfter("Pages::saveReady", $this, "saveAsHidden");
 	}
 
-	public function ready() {
+	public function ___saveAsHidden($hook) {
 
-		if($this->input->post($this->publish_name)) {
+		$page = $hook->arguments[0];
 
-			$id = $this->input->get("id");
+		if($this->input->post("submit_publish") == $this->publish_btn_val) {
 
-			$this->publishHidden($id);
+			$this->message("Page " . $page->id . " published as hidden");
+			$this->log->message("Page " . $page->id . " published as hidden");
+
+			// add page status as hidden and published
+			$page->addStatus("hidden");
+			$page->removeStatus("unpublished");
 		}
-	}
-
-	public function ___publishHidden(int $id) {
-
-		// get page
-		$page = $this->pages->get($id);
-
-		$this->message("Page " . $page->id . " published as hidden");
-		$this->log->message("Page " . $page->id . " published as hidden");
-
-		// add page status as hidden and published
-		$page->addStatus("hidden");
-		$page->removeStatus("unpublished");
-
-		// save page
-		$page->save();
 	}
 
 	/*
@@ -81,7 +70,6 @@ class PublishAsHidden extends WireData implements Module {
 		// get form
 		$form = $form->return;
 
-
 		// check if publish button available and therfore unpublished
 		$target = $form->get('submit_publish');
 		if($target){
@@ -89,8 +77,8 @@ class PublishAsHidden extends WireData implements Module {
 			// get InputfieldText module
 
 			$submit = $this->modules->get('InputfieldSubmit');
-			$submit->attr('name', $this->publish_name);
-			$submit->attr('id', 'publish_hidden');
+			$submit->attr('name', "submit_publish");
+			$submit->attr('id', $this->publish_name);
 			$submit->attr('class', 'ui-button ui-widget ui-corner-all head_button_clone ui-state-default ui-priority-secondary');
 			$submit->attr('value', $this->publish_btn_val);
 
